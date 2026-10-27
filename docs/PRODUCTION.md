@@ -4,7 +4,7 @@
 | --- | --- |
 | Repositorio | `gonzalobustamante/campeonatos_magic` |
 | Rama que despliega | `main` |
-| Sitio y pool IIS | `MagicCampeonatos` |
+| Sitio y pool IIS existentes | `MagisCampeonatos` (nombre registrado en el servidor) |
 | URL | `https://magic.chilesystems.com` |
 | Ruta física inicial | `C:\inetpub\MagicCampeonatos` (el workflow consulta la ruta real en IIS) |
 | Datos persistentes | `C:\ProgramData\Chilesystems\MagicCampeonatos` |
@@ -62,7 +62,7 @@ Estas variables no son secretas y se pueden configurar en **Settings → Secrets
 
 | Variable | Valor inicial |
 | --- | --- |
-| `MAGIC_IIS_SITE_NAME` | `MagicCampeonatos` |
+| `MAGIC_IIS_SITE_NAME` | `MagisCampeonatos` |
 | `MAGIC_PUBLIC_URL` | `https://magic.chilesystems.com` |
 | `MAGIC_DATA_DIRECTORY` | `C:\ProgramData\Chilesystems\MagicCampeonatos` |
 

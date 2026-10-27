@@ -16,7 +16,7 @@ jobs:
         shell: powershell
         run: |
           Import-Module WebAdministration
-          Get-Website | ForEach-Object {
+          Get-Website | Where-Object { $_.Name -like '*Magi*' -or @($_.Bindings.Collection | Where-Object bindingInformation -Like '*:magic.chilesystems.com').Count -gt 0 } | ForEach-Object {
             [pscustomobject]@{
               Name = $_.Name
               State = [string]$_.State

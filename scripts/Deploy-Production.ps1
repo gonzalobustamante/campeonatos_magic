@@ -70,9 +70,11 @@ function Stop-TargetPool {
     if ((Get-WebAppPoolState -Name $pool).Value -ne 'Stopped') { Stop-WebAppPool -Name $pool }
     $deadline = (Get-Date).AddSeconds(45)
     do {
-        [xml]$workers = (& "$env:windir\system32\inetsrv\appcmd.exe" list wp "/apppool.name:$pool" /xml | Out-String)
-        if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the IIS worker process.' }
-        if ((Get-WebAppPoolState -Name $pool).Value -eq 'Stopped' -and $workers.SelectNodes('//WP').Count -eq 0) { return }
+        # Query IIS directly: appcmd can return a nonzero exit code for an empty worker list.
+        $manager = New-Object Microsoft.Web.Administration.ServerManager
+        try { $workerCount = @($manager.WorkerProcesses | Where-Object AppPoolName -EQ $pool).Count }
+        finally { $manager.Dispose() }
+        if ((Get-WebAppPoolState -Name $pool).Value -eq 'Stopped' -and $workerCount -eq 0) { return }
         Start-Sleep -Milliseconds 500
     } while ((Get-Date) -lt $deadline)
     throw 'The application pool did not release its worker process in 45 seconds.'
