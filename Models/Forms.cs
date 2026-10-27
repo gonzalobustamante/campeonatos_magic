@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CampeonatoMagic.Services;
 
 namespace CampeonatoMagic.Models;
 
@@ -26,7 +27,7 @@ public class GameForm
     public int Id { get; set; }
     public int TournamentId { get; set; }
     public string TournamentName { get; set; } = "";
-    public DateTime PlayedAt { get; set; } = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago");
+    public DateTime PlayedAt { get; set; } = ChileTime.Now;
     [StringLength(1000)] public string? Notes { get; set; }
     public List<SeatForm> Seats { get; set; } = [];
 }

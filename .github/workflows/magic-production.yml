@@ -43,6 +43,11 @@ jobs:
       - name: Test application
         run: dotnet test CampeonatoMagic.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger trx --results-directory test-results
 
+      - name: Test Windows Server without ICU
+        env:
+          DOTNET_SYSTEM_GLOBALIZATION_USENLS: '1'
+        run: dotnet test CampeonatoMagic.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger trx --results-directory test-results-nls
+
       - name: Test deployment scripts
         shell: powershell
         run: ./scripts/Test-Deployment.ps1
@@ -52,7 +57,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: magic-tests-${{ github.run_id }}-${{ github.run_attempt }}
-          path: test-results/*.trx
+          path: |
+            test-results/*.trx
+            test-results-nls/*.trx
           if-no-files-found: warn
           retention-days: 14
 

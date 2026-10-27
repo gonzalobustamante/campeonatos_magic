@@ -1,4 +1,5 @@
 using CampeonatoMagic.Models;
+using CampeonatoMagic.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -135,7 +136,7 @@ public class AdminController(LeagueDb db) : Controller
         return View(new GameForm
         {
             Id = g?.Id ?? 0, TournamentId = t.Id, TournamentName = t.Name,
-            PlayedAt = g?.PlayedAt ?? TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago"), Notes = g?.Notes ?? "",
+            PlayedAt = g?.PlayedAt ?? ChileTime.Now, Notes = g?.Notes ?? "",
             Seats = t.Enrollments.Where(e => !e.Player.IsDeleted || g?.Seats.Any(s => s.PlayerId == e.PlayerId) == true).OrderBy(e => e.Player.Name).Select(e =>
             {
                 var seat = g?.Seats.SingleOrDefault(s => s.PlayerId == e.PlayerId);
