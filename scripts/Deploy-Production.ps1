@@ -11,6 +11,9 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 . (Join-Path $PSScriptRoot 'Deployment.Common.ps1')
 Import-Module WebAdministration -ErrorAction Stop
+$iisAssembly = Join-Path $env:windir 'System32\inetsrv\Microsoft.Web.Administration.dll'
+if (-not (Test-Path -LiteralPath $iisAssembly -PathType Leaf)) { throw 'The IIS management assembly is missing.' }
+Add-Type -Path $iisAssembly
 
 $package = Resolve-SafeDirectory $PackagePath
 $source = Resolve-SafeDirectory (Join-Path $package 'app')
