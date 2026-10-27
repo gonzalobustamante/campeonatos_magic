@@ -7,6 +7,8 @@ param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[a-fA-F0-9]{40}$')][string]$CommitSha
 )
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 on older server images may otherwise negotiate legacy TLS.
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 . (Join-Path $PSScriptRoot 'Deployment.Common.ps1')
 Import-Module WebAdministration -ErrorAction Stop
 
