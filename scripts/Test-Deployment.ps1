@@ -3,8 +3,14 @@ $ErrorActionPreference = 'Stop'
 $scripts = Join-Path $RepositoryRoot 'scripts'
 foreach ($script in Get-ChildItem -LiteralPath $scripts -Filter '*.ps1') {
     $tokens = $null; $parseErrors = $null
-    [void][Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$parseErrors)
+    $syntaxTree = [Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$parseErrors)
     if ($parseErrors.Count -gt 0) { throw "PowerShell parse failed in $($script.Name): $parseErrors" }
+    $reservedAssignments = $syntaxTree.FindAll({ param($node)
+        $node -is [Management.Automation.Language.AssignmentStatementAst] -and
+        $node.Left -is [Management.Automation.Language.VariableExpressionAst] -and
+        $node.Left.VariablePath.UserPath -in @('HOME','PID','Host','PSHOME','PSVersionTable')
+    }, $true)
+    if ($reservedAssignments.Count -gt 0) { throw "Reserved PowerShell variable assigned in $($script.Name)." }
 }
 . (Join-Path $scripts 'Deployment.Common.ps1')
 

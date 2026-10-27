@@ -115,7 +115,7 @@ for ($attempt=1; $attempt -le 12; $attempt++) {
     if ($attempt -lt 12) { Start-Sleep -Seconds 5 }
 }
 if (-not $ready) { throw "The new commit is not ready at $healthUrl. Backup available at $backup. No database rollback was performed." }
-$home = Invoke-WebRequest -Uri $PublicUrl -UseBasicParsing -TimeoutSec 15
-if ($home.StatusCode -ne 200 -or $home.Content -notmatch 'Commander Chilesystems') { throw "The home page did not pass validation. Backup: $backup" }
+$homeResponse = Invoke-WebRequest -Uri $PublicUrl -UseBasicParsing -TimeoutSec 15
+if ($homeResponse.StatusCode -ne 200 -or $homeResponse.Content -notmatch 'Commander Chilesystems') { throw "The home page did not pass validation. Backup: $backup" }
 Write-Host "Deployment verified: $PublicUrl ($CommitSha). Backup: $backup"
 $global:LASTEXITCODE = 0
