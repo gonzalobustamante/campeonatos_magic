@@ -1,0 +1,13 @@
+@model List<Player>
+@{ ViewData["Title"] = "Jugadores"; var isAdmin = User.Identity?.IsAuthenticated == true; }
+<div class="page-heading"><div><p class="eyebrow">REGISTRO DEL EQUIPO</p><h1 class="page-title">Jugadores</h1><p class="lead">@Model.Count jugador(es) registrado(s)</p></div>@if (isAdmin) { <a class="button" asp-controller="Admin" asp-action="Player">＋ Agregar jugador</a> }</div>
+@if (Model.Count == 0) { <div class="empty"><h3>No hay jugadores registrados.</h3><p>Agrega jugadores para inscribirlos en los campeonatos.</p></div> }
+else {
+<section class="panel player-list"><div class="table-scroll"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Estado</th>@if (isAdmin) { <th scope="col">Acciones</th> }</tr></thead><tbody>
+@foreach (var p in Model) {
+<tr><th scope="row"><span class="avatar">@p.Name[..1].ToUpper()</span>@p.Name</th><td><span class="badge @(p.Active ? "" : "neutral")">@(p.Active ? "Activo" : "Inactivo")</span></td>
+@if (isAdmin) { <td><div class="actions row-actions"><a class="button small quiet" asp-controller="Admin" asp-action="Player" asp-route-id="@p.Id">Editar</a><form asp-controller="Admin" asp-action="DeletePlayer" asp-route-id="@p.Id" method="post" data-confirm="¿Eliminar a @p.Name del registro? Dejará de estar disponible para nuevas partidas. Su historial se conservará."><button class="button small danger">Eliminar</button></form></div></td> }</tr>
+}
+</tbody></table></div></section>
+@if (isAdmin) { <p class="table-note">Eliminar quita al jugador del registro y de nuevas inscripciones. Sus resultados anteriores se conservan.</p> }
+}

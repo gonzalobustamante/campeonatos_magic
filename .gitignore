@@ -1,0 +1,13 @@
+bin/
+obj/
+**/bin/
+**/obj/
+App_Data/
+artifacts/
+.vs/
+*.user
+*.db
+*.db-shm
+*.db-wal
+TestResults/
+test-results/

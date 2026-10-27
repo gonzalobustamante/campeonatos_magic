@@ -1,0 +1,108 @@
+name: MagicCampeonatos Production
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magic-production-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  BUILD_CONFIGURATION: Release
+  DOTNET_VERSION: 10.0.x
+
+jobs:
+  validate-and-package:
+    name: Build, test and package
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore CampeonatoMagic.slnx
+
+      - name: Build
+        run: dotnet build CampeonatoMagic.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Test application
+        run: dotnet test CampeonatoMagic.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger trx --results-directory test-results
+
+      - name: Test deployment scripts
+        shell: powershell
+        run: ./scripts/Test-Deployment.ps1
+
+      - name: Preserve test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: magic-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish for IIS
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: powershell
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'magic-package'
+          $web = Join-Path $package 'app'
+          dotnet publish CampeonatoMagic.csproj -c $env:BUILD_CONFIGURATION -r win-x64 --self-contained false -o $web
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
+          ./scripts/Test-DeploymentPackage.ps1 -Path $web
+          Copy-Item -LiteralPath ./scripts/Deploy-Production.ps1, ./scripts/Deployment.Common.ps1 -Destination $package
+          @{ commit = '${{ github.sha }}'; run = '${{ github.run_id }}' } | ConvertTo-Json | Set-Content (Join-Path $package 'release.json') -Encoding UTF8
+
+      - name: Upload production package
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: magic-production-${{ github.sha }}
+          path: ${{ runner.temp }}/magic-package
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy-production:
+    name: Deploy to production IIS
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate-and-package
+    runs-on: [self-hosted, production]
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://magic.chilesystems.com
+    steps:
+      - name: Download validated production package
+        uses: actions/download-artifact@v4
+        with:
+          name: magic-production-${{ github.sha }}
+          path: deployment
+
+      - name: Deploy, back up and verify
+        shell: powershell
+        env:
+          MAGIC_IIS_SITE_NAME: ${{ vars.MAGIC_IIS_SITE_NAME || 'MagicCampeonatos' }}
+          MAGIC_PUBLIC_URL: ${{ vars.MAGIC_PUBLIC_URL || 'https://magic.chilesystems.com' }}
+          MAGIC_DATA_DIRECTORY: ${{ vars.MAGIC_DATA_DIRECTORY || 'C:\ProgramData\Chilesystems\MagicCampeonatos' }}
+        run: |
+          ./deployment/Deploy-Production.ps1 `
+            -PackagePath (Join-Path $env:GITHUB_WORKSPACE 'deployment') `
+            -SiteName $env:MAGIC_IIS_SITE_NAME `
+            -PublicUrl $env:MAGIC_PUBLIC_URL `
+            -DataDirectory $env:MAGIC_DATA_DIRECTORY `
+            -CommitSha '${{ github.sha }}'

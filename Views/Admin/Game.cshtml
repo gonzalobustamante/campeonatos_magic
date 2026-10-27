@@ -1,0 +1,25 @@
+@model GameForm
+@{ ViewData["Title"] = Model.Id == 0 ? "Registrar partida" : "Editar partida"; }
+<a class="back-link" asp-controller="Home" asp-action="Tournament" asp-route-id="@Model.TournamentId">← @Model.TournamentName</a>
+<div class="page-heading"><div><p class="eyebrow">EL RESULTADO DE LA MESA</p><h1 class="page-title">@ViewData["Title"]</h1><p class="lead">Marca quiénes jugaron y cuéntanos cómo terminó.</p></div></div>
+<form method="post" class="panel form-panel stacked" id="game-form">
+<input asp-for="Id" type="hidden" /><input asp-for="TournamentId" type="hidden" />
+<div asp-validation-summary="All" class="validation" role="alert"></div>
+<label asp-for="PlayedAt">Fecha y hora <span class="muted">(Chile)</span></label><input asp-for="PlayedAt" type="datetime-local" required />
+<fieldset><legend>Participantes y resultados</legend><p class="muted">Entre 2 y 8 jugadores. Si no hay ganador, marca a quienes sobrevivieron.</p>
+@if (Model.Seats.Count < 2) { <p class="notice">Necesitas al menos dos jugadores inscritos. <a asp-action="Tournament" asp-route-id="@Model.TournamentId">Editar inscripciones</a></p> }
+<div class="seat-list">
+@for (var i = 0; i < Model.Seats.Count; i++) {
+<div class="seat-row" data-seat data-player-id="@Model.Seats[i].PlayerId">
+<input asp-for="Seats[i].PlayerId" type="hidden" />
+<label class="seat-name"><input asp-for="Seats[i].Selected" class="seat-toggle" /><span class="avatar">@Model.Seats[i].Name[..1].ToUpper()</span><strong>@Model.Seats[i].Name</strong></label>
+<div><label asp-for="Seats[i].Outcome">Resultado</label><select asp-for="Seats[i].Outcome" class="outcome-select"><option value="Eliminated">Eliminado</option><option value="Winner">Ganó la mesa</option><option value="Survived">Sobrevivió (sin ganador)</option><option value="Conceded">Se retiró / concedió</option></select></div>
+<div><label asp-for="Seats[i].KillerId">Eliminado por</label><select asp-for="Seats[i].KillerId" class="killer-select"><option value="">Sin atribución / no aplica</option>@foreach (var p in Model.Seats.Where(p => p.PlayerId != Model.Seats[i].PlayerId)) { <option value="@p.PlayerId">@p.Name</option> }</select></div>
+<output class="seat-points" aria-label="Puntos estimados">—</output>
+</div>
+}
+</div></fieldset>
+<div id="score-preview" class="notice" aria-live="polite">Selecciona los participantes para calcular el puntaje.</div>
+<label asp-for="Notes">Notas de la partida <span class="muted">(opcional, públicas)</span></label><textarea asp-for="Notes" rows="3" maxlength="1000" placeholder="Comandantes, jugadas memorables o contexto del resultado"></textarea>
+<div class="actions"><button class="button">Guardar partida</button><a class="button quiet" asp-controller="Home" asp-action="Tournament" asp-route-id="@Model.TournamentId">Cancelar</a></div>
+</form>

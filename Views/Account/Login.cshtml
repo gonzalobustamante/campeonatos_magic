@@ -1,0 +1,6 @@
+@model LoginForm
+@{ ViewData["Title"] = "Administración"; }
+<div class="login-layout">
+<form method="post" class="panel stacked login-panel"><p class="eyebrow">CHILESYSTEMS · COMMANDER</p><h1>Administración</h1><p class="muted">Ingresa para gestionar jugadores y campeonatos.</p><div asp-validation-summary="All" class="validation" role="alert"></div><input asp-for="ReturnUrl" type="hidden" />
+@if (ViewBag.Configured == false) { <p class="notice">La cuenta aún no está configurada. El responsable del servidor debe ejecutar la configuración inicial indicada en el README.</p> }
+<label asp-for="Username">Usuario</label><input asp-for="Username" autocomplete="username" required /><label asp-for="Password">Contraseña</label><input asp-for="Password" type="password" autocomplete="current-password" required /><button class="button">Entrar</button><a class="back-link" asp-controller="Home" asp-action="Index">← Volver a campeonatos</a></form></div>

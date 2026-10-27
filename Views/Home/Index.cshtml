@@ -1,0 +1,30 @@
+@model List<Tournament>
+@{ ViewData["Title"] = "Campeonatos"; var state = ViewBag.State as string; var isAdmin = User.Identity?.IsAuthenticated == true; }
+<div class="page-heading dashboard-heading"><div><p class="eyebrow">MAGIC: THE GATHERING · COMMANDER B3</p><h1 class="page-title">Campeonatos</h1></div>
+<div class="actions"><img class="mana-symbols" src="~/mana.svg" alt="Los cinco colores de maná" width="154" height="26" />@if (isAdmin) { <a class="button" asp-controller="Admin" asp-action="Tournament">＋ Crear campeonato</a> }</div></div>
+<div class="section-heading compact-heading"><div class="tabs" aria-label="Filtrar campeonatos"><a class="@(state is null ? "selected" : "")" asp-action="Index">Todos</a><a class="@(state == "activos" ? "selected" : "")" asp-action="Index" asp-route-estado="activos">En curso</a><a class="@(state == "finalizados" ? "selected" : "")" asp-action="Index" asp-route-estado="finalizados">Finalizados</a></div><span class="muted">@Model.Count campeonato(s)</span></div>
+@if (Model.Count == 0) {
+<div class="empty"><span class="empty-symbol">◇</span><h3>No hay campeonatos @(state == "finalizados" ? "finalizados" : state == "activos" ? "en curso" : "registrados").</h3>
+@if (isAdmin) { <a class="button" asp-controller="Admin" asp-action="Tournament">Crear campeonato</a> } else { <p>El administrador puede crear campeonatos e inscribir jugadores.</p> }</div>
+} else {
+<div class="tournament-grid">
+@foreach (var t in Model) {
+<article class="tournament-card @(t.Closed ? "finished" : "")">
+<a class="tournament-card-main" asp-action="Tournament" asp-route-id="@t.Id">
+<div class="card-top"><span class="badge @(t.Closed ? "neutral" : "")">@(t.Closed ? "Finalizado" : "En curso")</span><span class="card-format">COMMANDER <b>B3</b></span></div>
+<h2>@t.Name</h2>
+@if (!string.IsNullOrWhiteSpace(t.Description)) { <p class="description">@t.Description</p> }
+@if (t.Closed) { <p class="champion">♛ @t.Champion?.DisplayName <small>Primer lugar</small></p> }
+<div class="tournament-stats"><span><strong>@t.Enrollments.Count</strong> jugadores</span><span><strong>@t.Games.Count</strong> partidas</span></div>
+<div class="card-bottom"><span>Desde @t.StartDate.ToString("dd MMM yyyy")</span><span class="text-link">Ver campeonato ↗</span></div>
+</a>
+@if (isAdmin) {
+<div class="card-admin actions">
+@if (!t.Closed) { <a class="text-link" asp-controller="Admin" asp-action="Game" asp-route-tournamentId="@t.Id">＋ Partida</a><a class="text-link" asp-controller="Admin" asp-action="Tournament" asp-route-id="@t.Id">Editar</a> }
+<form asp-controller="Admin" asp-action="DeleteTournament" asp-route-id="@t.Id" method="post" data-confirm="¿Eliminar el campeonato «@t.Name»? Se borrarán todas sus partidas, inscripciones y ajustes de puntos."><button class="text-button danger">Eliminar</button></form>
+</div>
+}
+</article>
+}
+</div>
+}

@@ -1,0 +1,18 @@
+@model TournamentForm
+@{ ViewData["Title"] = Model.Id == 0 ? "Crear campeonato" : "Editar campeonato"; }
+<a class="back-link" asp-controller="Home" asp-action="Index">← Campeonatos</a>
+<div class="page-heading"><div><p class="eyebrow">CAMPEONATOS</p><h1 class="page-title">@ViewData["Title"]</h1></div></div>
+<form method="post" class="panel form-panel stacked">
+<div asp-validation-summary="All" class="validation" role="alert"></div>
+<input asp-for="Id" type="hidden" />
+<label asp-for="Name">Nombre del campeonato</label><input asp-for="Name" maxlength="100" placeholder="Ej. Liga de los viernes" required />
+<label asp-for="Description">Descripción <span class="muted">(opcional)</span></label><textarea asp-for="Description" maxlength="1000" rows="3" placeholder="Notas del campeonato"></textarea>
+<label asp-for="StartDate">Fecha de inicio</label><input asp-for="StartDate" type="date" required />
+<fieldset><legend>Jugadores inscritos</legend><p class="muted">Pueden participar en varios campeonatos. Los inactivos ya inscritos conservan su lugar.</p>
+@if (Model.Players.Count == 0) { <p>Primero <a asp-action="Player">agrega jugadores</a>. También puedes guardar el campeonato e inscribirlos después.</p> }
+<div class="checkbox-grid">@foreach (var p in Model.Players.Where(p => p.Active || Model.PlayerIds.Contains(p.Id))) {
+@if (p.IsDeleted) { <input type="hidden" name="PlayerIds" value="@p.Id" /> }
+<label class="check-card"><input type="checkbox" name="PlayerIds" value="@p.Id" checked="@Model.PlayerIds.Contains(p.Id)" disabled="@p.IsDeleted" /><span>@p.DisplayName @(!p.Active && !p.IsDeleted ? "(inactivo)" : "")</span></label>
+}</div></fieldset>
+<div class="actions"><button class="button">Guardar campeonato</button><a class="button quiet" asp-controller="Home" asp-action="Index">Cancelar</a></div>
+</form>

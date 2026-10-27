@@ -1,0 +1,8 @@
+@model Player
+@{ ViewData["Title"] = Model.Id == 0 ? "Agregar jugador" : "Editar jugador"; }
+<a class="back-link" asp-controller="Home" asp-action="Players">← Jugadores</a><div class="page-heading"><div><p class="eyebrow">REGISTRO DEL EQUIPO</p><h1 class="page-title">@ViewData["Title"]</h1></div></div>
+<form method="post" class="panel form-panel narrow stacked"><div asp-validation-summary="All" class="validation" role="alert"></div><input asp-for="Id" type="hidden" />
+<label asp-for="Name">Nombre o apodo</label><input asp-for="Name" maxlength="60" required placeholder="Cómo le dicen en la mesa" />
+<label class="check-card"><input asp-for="Active" /><span>Jugador activo</span></label><p class="muted">Al desactivarlo, se conserva su historial y deja de aparecer al inscribir nuevos campeonatos.</p>
+<div class="actions"><button class="button">Guardar jugador</button><a class="button quiet" asp-controller="Home" asp-action="Players">Cancelar</a></div></form>
+@if (Model.Id != 0) { <div class="danger-zone narrow"><p>Eliminar quita al jugador del registro y de nuevas partidas. Su historial se conserva.</p><form method="post" asp-action="DeletePlayer" asp-route-id="@Model.Id" data-confirm="¿Eliminar a @Model.Name del registro? Sus resultados anteriores se conservarán."><button class="button danger">Eliminar jugador</button></form></div> }

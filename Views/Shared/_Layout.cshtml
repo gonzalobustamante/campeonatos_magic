@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>@ViewData["Title"] · Commander Chilesystems</title>
+<link rel="icon" type="image/svg+xml" href="~/mark.svg" />
+<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<header class="site-header"><div class="shell header-inner">
+<a class="brand" asp-controller="Home" asp-action="Index"><span class="brand-mark" aria-hidden="true">◇</span><span>COMMANDER<small>CHILESYSTEMS · BRACKET 3</small></span></a>
+<nav aria-label="Principal">
+<a asp-controller="Home" asp-action="Index">Campeonatos</a>
+<a asp-controller="Home" asp-action="Players">Jugadores</a>
+<a asp-controller="Home" asp-action="Rules">Puntuación</a>
+</nav>
+@if (User.Identity?.IsAuthenticated == true) {
+<div class="session"><span class="admin-label">Administrador</span><form asp-controller="Account" asp-action="Logout" method="post"><button class="button small quiet" type="submit">Cerrar sesión</button></form></div>
+} else { <a class="button small quiet" asp-controller="Account" asp-action="Login">Administrar ↗</a> }
+</div></header>
+<main class="shell">
+@if (TempData["Notice"] is string notice) { <div class="notice" role="status">@notice</div> }
+@RenderBody()
+</main>
+<footer class="shell site-footer"><span>CHILESYSTEMS <span class="muted">/</span> Uso interno</span><span>Magic: The Gathering · Commander B3</span></footer>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body></html>

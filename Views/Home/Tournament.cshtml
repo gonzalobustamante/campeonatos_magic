@@ -1,0 +1,40 @@
+@model Tournament
+@{ ViewData["Title"] = Model.Name; var table = Scoring.Table(Model); var isAdmin = User.Identity?.IsAuthenticated == true; }
+<a class="back-link" asp-action="Index">← Campeonatos</a>
+<div class="page-heading"><div><p class="eyebrow">COMMANDER · BRACKET 3 <span class="badge @(Model.Closed ? "neutral" : "")">@(Model.Closed ? "Finalizado" : "En juego")</span></p><h1 class="page-title">@Model.Name</h1><p class="lead">@Model.Description</p><p class="muted">Desde el @Model.StartDate.ToString("dd MMM yyyy") · @Model.Enrollments.Count jugadores · @Model.Games.Count partidas</p></div>
+@if (isAdmin) { <div class="actions">@if (!Model.Closed) { <a class="button quiet" asp-controller="Admin" asp-action="Tournament" asp-route-id="@Model.Id">Editar</a><a class="button" asp-controller="Admin" asp-action="Game" asp-route-tournamentId="@Model.Id">＋ Registrar partida</a> }<form asp-controller="Admin" asp-action="DeleteTournament" asp-route-id="@Model.Id" method="post" data-confirm="¿Eliminar el campeonato «@Model.Name»? Se borrarán todas sus partidas, inscripciones y ajustes de puntos."><button class="button danger">Eliminar campeonato</button></form></div> }</div>
+@if (Model.Closed) { <section class="winner-banner"><span aria-hidden="true">♛</span><div><p class="eyebrow">PRIMER LUGAR DEL CAMPEONATO</p><h2>@Model.Champion?.DisplayName</h2><p>Campeonato finalizado. Todas las partidas quedan en el historial.</p></div></section> }
+<div class="detail-grid"><section class="panel">
+<div class="panel-heading"><div><p class="eyebrow">PUNTOS DEL CAMPEONATO</p><h2>Clasificación</h2></div><span class="muted">@(Model.Closed ? "Resultado final" : "Acumulado")</span></div>
+@if (table.Count == 0) { <div class="empty compact"><h3>Sin jugadores inscritos.</h3><p>Edita el campeonato para inscribir jugadores.</p></div> }
+else { <div class="table-scroll"><table><thead><tr><th scope="col">#</th><th scope="col">Jugador</th><th scope="col" title="Partidas jugadas">PJ</th><th scope="col" title="Mesas ganadas">G</th><th scope="col" title="Eliminaciones">E</th><th scope="col" title="Sobrevivencias sin ganador">S</th><th scope="col">Ajustes</th><th scope="col">PTS</th></tr></thead><tbody>
+@for (var i = 0; i < table.Count; i++) { var row = table[i]; var rank = table.Count(x => x.Points > row.Points) + 1;
+<tr><td class="rank">@rank.ToString("00")</td><th scope="row"><span class="avatar">@row.Name[..1].ToUpper()</span>@row.Name @if (row.PlayerId == Model.ChampionId) { <span title="Campeón">♛</span> }</th><td>@row.Games</td><td>@row.Wins</td><td>@row.Kills</td><td>@row.Survival</td><td>@row.Adjustments.ToString("+0;-0;0")</td><td class="points">@row.Points</td></tr>
+}
+</tbody></table></div><p class="table-note">PJ: partidas · G: victorias · E: eliminaciones · S: sobrevivencias. Los empates comparten posición; el administrador define al campeón.</p> }
+</section><aside class="panel rules-aside"><p class="eyebrow">PUNTUACIÓN</p><div class="rule-line"><strong>+3</strong><span>Ganar la mesa</span></div><div class="rule-line"><strong>+1</strong><span>Por cada eliminación</span></div><div class="rule-line"><strong>+1</strong><span>Sobrevivir si no hay ganador</span></div><p class="muted">Las eliminaciones se acumulan, incluso si luego pierdes.</p><a class="text-link" asp-action="Rules">Ver las reglas ↗</a></aside></div>
+<section class="history"><div class="section-heading"><div><p class="eyebrow">RESULTADOS</p><h2>Historial de partidas</h2></div><span class="muted">@Model.Games.Count registradas</span></div>
+@if (Model.Games.Count == 0) { <div class="empty"><h3>Sin partidas registradas.</h3><p>Las partidas y sus resultados aparecerán aquí.</p></div> }
+@foreach (var g in Model.Games.OrderByDescending(g => g.PlayedAt).ThenByDescending(g => g.Id)) {
+<article class="game-panel panel"><div class="panel-heading"><div><p class="eyebrow">MESA #@g.Id <span class="muted">·</span> @g.PlayedAt.ToString("dd MMM yyyy · HH:mm")</p><h3>@(g.Seats.FirstOrDefault(s => s.Outcome == Outcome.Winner)?.Player.Name is string name ? name + " ganó la mesa" : "Mesa sin ganador")</h3></div>
+@if (isAdmin && !Model.Closed) { <div class="actions"><a class="text-link" asp-controller="Admin" asp-action="Game" asp-route-tournamentId="@Model.Id" asp-route-id="@g.Id">Editar</a><form asp-controller="Admin" asp-action="DeleteGame" asp-route-id="@g.Id" method="post" data-confirm="¿Eliminar esta partida y sus puntos?"><button class="text-button danger">Eliminar</button></form></div> }</div>
+<div class="results-grid">
+@foreach (var s in g.Seats.OrderByDescending(s => Scoring.Points(g, s))) {
+<div class="result @(s.Outcome == Outcome.Winner ? "winning" : "")"><div><strong>@s.Player.DisplayName</strong><small>@(s.Outcome == Outcome.Winner ? "♛ Ganó la mesa" : s.Outcome == Outcome.Survived ? "Sobrevivió" : s.Outcome == Outcome.Conceded ? "Se retiró" : s.Killer is not null ? "Eliminado por " + s.Killer.DisplayName : "Eliminado sin atribución")</small><small>@g.Seats.Count(x => x.KillerId == s.PlayerId) eliminaciones</small></div><b>+@Scoring.Points(g, s)</b></div>
+}
+</div>
+@if (!string.IsNullOrWhiteSpace(g.Notes)) { <p class="game-notes">@g.Notes</p> }
+</article>
+}
+</section>
+@if (Model.Adjustments.Count > 0) {
+<section class="panel"><h3>Ajustes de puntos</h3>@foreach (var a in Model.Adjustments.OrderByDescending(a => a.CreatedAt)) { <div class="adjustment-row"><div><strong>@a.Player.DisplayName <span class="points">@a.Points.ToString("+0;-0")</span></strong><p>@a.Reason</p></div>@if (isAdmin && !Model.Closed) { <form asp-controller="Admin" asp-action="DeleteAdjustment" asp-route-id="@a.Id" method="post" data-confirm="¿Eliminar este ajuste?"><button class="text-button danger">Eliminar</button></form> }</div> }</section>
+}
+@if (isAdmin) {
+<section class="admin-section"><p class="eyebrow">ADMINISTRACIÓN DEL CAMPEONATO</p><div class="admin-grid">
+@if (!Model.Closed) {
+<form class="panel stacked" asp-controller="Admin" asp-action="Adjust" asp-route-id="@Model.Id" method="post"><h3>Ajustar puntos</h3><p class="muted">Para correcciones o bonificaciones. El motivo será público.</p><label for="adjust-player">Jugador</label><select id="adjust-player" name="playerId" required><option value="">Seleccionar</option>@foreach (var e in Model.Enrollments) { <option value="@e.PlayerId">@e.Player.DisplayName</option> }</select><label for="adjust-points">Puntos a sumar o restar</label><input id="adjust-points" name="points" type="number" required min="-1000" max="1000" placeholder="Ej. -1 o 2" /><label for="adjust-reason">Motivo</label><input id="adjust-reason" name="reason" required maxlength="250" /><button class="button quiet">Guardar ajuste</button></form>
+<form class="panel stacked" asp-controller="Admin" asp-action="Close" asp-route-id="@Model.Id" method="post" data-confirm="¿Finalizar el campeonato con este primer lugar?"><h3>Cerrar campeonato</h3><p class="muted">Elige al primer lugar, aunque sea distinto del líder por puntos. Luego quedará guardado en el historial.</p><label for="champion">Campeón</label><select id="champion" name="championId" required><option value="">Seleccionar primer lugar</option>@foreach (var row in table) { <option value="@row.PlayerId">@row.Name (@row.Points pts)</option> }</select><button class="button">Finalizar campeonato</button></form>
+} else { <form class="panel stacked" asp-controller="Admin" asp-action="Reopen" asp-route-id="@Model.Id" method="post" data-confirm="¿Reabrir el campeonato? Se quitará el campeón designado hasta que vuelvas a cerrarlo."><h3>Corregir resultados</h3><p>Reabre el campeonato para editar partidas, jugadores o puntos.</p><button class="button quiet">Reabrir campeonato</button></form> }
+</div></section>
+}
