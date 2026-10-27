@@ -2,6 +2,11 @@ name: Inspect production IIS
 
 on:
   workflow_dispatch:
+    inputs:
+      repair_sni:
+        description: Enable SNI on the existing magic.chilesystems.com HTTPS binding
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,6 +17,24 @@ jobs:
     environment: production
     timeout-minutes: 5
     steps:
+      - name: Repair the Magic HTTPS SNI mapping
+        if: inputs.repair_sni
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          $binding = @(Get-WebBinding -Name 'MagicCampeonatos' -Protocol https | Where-Object bindingInformation -EQ '*:443:magic.chilesystems.com')
+          if ($binding.Count -ne 1) { throw 'Expected one existing Magic HTTPS binding.' }
+          $thumbprint = [string]$binding[0].certificateHash
+          $certificate = Get-Item -LiteralPath "Cert:\LocalMachine\My\$thumbprint"
+          if (-not $certificate.HasPrivateKey -or $certificate.NotAfter -le (Get-Date) -or
+              @($certificate.DnsNameList | Where-Object { 'magic.chilesystems.com' -like $_.Unicode }).Count -eq 0) {
+            throw 'The assigned certificate is not valid for the Magic hostname.'
+          }
+          $flags = [int]$binding[0].sslFlags -bor 1
+          Set-WebBinding -Name 'MagicCampeonatos' -BindingInformation '*:443:magic.chilesystems.com' -PropertyName sslFlags -Value $flags
+          $updated = Get-WebBinding -Name 'MagicCampeonatos' -Protocol https | Where-Object bindingInformation -EQ '*:443:magic.chilesystems.com'
+          $updated.AddSslCertificate($thumbprint, 'My')
+          Write-Host 'Magic HTTPS hostname now uses SNI with its existing valid certificate.'
       - name: Inspect IIS site names, bindings and runtime
         shell: powershell
         run: |
@@ -27,7 +50,7 @@ jobs:
           } | ConvertTo-Json -Depth 4
           & "$env:ProgramFiles\dotnet\dotnet.exe" --list-runtimes
           Get-WebGlobalModule | Where-Object Name -EQ 'AspNetCoreModuleV2' | Select-Object Name, Image | Format-List
-          Get-WebBinding -Name 'MagicCampeonatos' -Protocol https | Select-Object bindingInformation, certificateHash, certificateStoreName | ConvertTo-Json
+          Get-WebBinding -Name 'MagicCampeonatos' -Protocol https | Select-Object bindingInformation, sslFlags, certificateHash, certificateStoreName | ConvertTo-Json
           Get-ChildItem Cert:\LocalMachine\My | Where-Object {
             $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) -and
             @($_.DnsNameList | Where-Object { 'magic.chilesystems.com' -like $_.Unicode }).Count -gt 0
