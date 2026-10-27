@@ -27,3 +27,8 @@ jobs:
           } | ConvertTo-Json -Depth 4
           & "$env:ProgramFiles\dotnet\dotnet.exe" --list-runtimes
           Get-WebGlobalModule | Where-Object Name -EQ 'AspNetCoreModuleV2' | Select-Object Name, Image | Format-List
+          Get-WebBinding -Name 'MagicCampeonatos' -Protocol https | Select-Object bindingInformation, certificateHash, certificateStoreName | ConvertTo-Json
+          Get-ChildItem Cert:\LocalMachine\My | Where-Object {
+            $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) -and
+            @($_.DnsNameList | Where-Object { 'magic.chilesystems.com' -like $_.Unicode }).Count -gt 0
+          } | Select-Object Subject, Thumbprint, NotAfter, @{Name='DnsNames';Expression={@($_.DnsNameList.Unicode)}} | ConvertTo-Json -Depth 3
