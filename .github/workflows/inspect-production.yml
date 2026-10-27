@@ -1,0 +1,29 @@
+name: Inspect production IIS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, production]
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - name: Inspect IIS site names, bindings and runtime
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Get-Website | ForEach-Object {
+            [pscustomobject]@{
+              Name = $_.Name
+              State = [string]$_.State
+              ApplicationPool = $_.ApplicationPool
+              PhysicalPath = $_.PhysicalPath
+              Bindings = @($_.Bindings.Collection | ForEach-Object { "$($_.protocol) $($_.bindingInformation)" })
+            }
+          } | ConvertTo-Json -Depth 4
+          & "$env:ProgramFiles\dotnet\dotnet.exe" --list-runtimes
+          Get-WebGlobalModule | Where-Object Name -EQ 'AspNetCoreModuleV2' | Select-Object Name, Image | Format-List
